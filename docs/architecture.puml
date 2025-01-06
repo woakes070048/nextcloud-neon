@@ -1,18 +1,17 @@
 @startuml architecture
 
 package "Neon framework" {
-    component neon
+    component neon_framework
     component nextcloud
-    component settings
     component sort_box
-    component file_icons
 }
 
 package "Clients" {
-    component neon_files
-    component neon_news
-    component neon_notes
-    component neon_notifications
+    component dashboard_app
+    component files_app
+    component news_app
+    component notes_app
+    component notifications_app
 }
 
 package "OpenAPI" {
@@ -22,20 +21,21 @@ package "OpenAPI" {
 
 component app
 
-app ..> neon_files
-app ..> neon_news
-app ..> neon_notes
-app ..> neon_notifications
+app ..> dashboard_app
+app ..> files_app
+app ..> news_app
+app ..> notes_app
+app ..> notifications_app
 
-neon_files --> neon
-neon_news --> neon
-neon_notes --> neon
-neon_notifications --> neon
+dashboard_app --> neon_framework
+files_app --> neon_framework
+news_app --> neon_framework
+notes_app --> neon_framework
+notifications_app --> neon_framework
 
 
-neon --> nextcloud
-neon --> sort_box
-neon --> file_icons
+neon_framework --> nextcloud
+neon_framework --> sort_box
 
 dynamite --> nextcloud
 specifications --> nextcloud

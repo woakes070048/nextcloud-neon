@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euxo pipefail
 cd "$(dirname "$0")/.."
 
-color="#f37736"
+color="#0082c9"
 
 rm -rf /tmp/nextcloud-neon
 mkdir -p /tmp/nextcloud-neon
@@ -10,7 +10,7 @@ mkdir -p /tmp/nextcloud-neon
 function copy_app_svg() {
   id="$1"
   path="$2"
-  target="packages/neon/neon_$id/assets/app.svg"
+  target="packages/neon_framework/packages/${id}_app/assets/app.svg"
   if [ -f "$path/img/app.svg" ]; then
     cp "$path/img/app.svg" "$target"
   elif [ -f "$path/img/$id.svg" ]; then
@@ -19,26 +19,44 @@ function copy_app_svg() {
     echo "Can not find icon for $id in $path"
     exit 1
   fi
-  sed -i "s/fill=\"#[^\"]*\"/fill=\"$color\"/g" "$target"
+  sed -i "s/fill=\"#[^\"]*\"/fill=\"white\"/g" "$target"
+  sed -i "s/<svg /<svg style=\"background-color: $color\" /g" "$target"
 }
 
-function export_mipmap_icon() {
+function generate_android_icon_dpi() {
     source="$1"
-    name="$2"
-    size="$3"
+    size="$2"
+    name="$3"
     dpi="$4"
-    inkscape "$source" -o "android/app/src/main/res/mipmap-${dpi}dpi/$name.png" -w "$size" -h "$size"
+    inkscape "$source" -o "android/app/src/main/res/mipmap-${dpi}dpi/$name.png" -w "$size" -h "$size" --actions="export-background:$color"
+    mkdir -p "android/app/src/main/res/drawable-${dpi}dpi"
+    inkscape "$source" -o "android/app/src/main/res/drawable-${dpi}dpi/${name}_outline.png" -w "$size" -h "$size"
 }
 
-function export_mipmap_icon_all() {
+function generate_android_adaptive_icon() {
+  icon="$1"
+  mkdir -p "android/app/src/main/res/mipmap-anydpi-v26"
+  echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+<adaptive-icon xmlns:android=\"http://schemas.android.com/apk/res/android\">
+    <background android:drawable=\"@drawable/background_gradient\"/>
+    <foreground>
+        <inset android:drawable=\"@drawable/${icon}_outline\" android:inset=\"25%\"/>
+    </foreground>
+    <monochrome>
+        <inset android:drawable=\"@drawable/${icon}_outline\" android:inset=\"25%\"/>
+    </monochrome>
+</adaptive-icon>" > "android/app/src/main/res/mipmap-anydpi-v26/${icon}.xml"
+}
+
+function generate_android_icon() {
     source="$1"
     name="$2"
-    export_mipmap_icon "$source" "$name" 72 h &
-    export_mipmap_icon "$source" "$name" 48 m &
-    export_mipmap_icon "$source" "$name" 96 xh &
-    export_mipmap_icon "$source" "$name" 144 xxh &
-    export_mipmap_icon "$source" "$name" 192 xxxh &
-    wait
+    generate_android_icon_dpi "$source" 72  "$name" h
+    generate_android_icon_dpi "$source" 48  "$name" m
+    generate_android_icon_dpi "$source" 96  "$name" xh
+    generate_android_icon_dpi "$source" 144 "$name" xxh
+    generate_android_icon_dpi "$source" 192 "$name" xxxh
+    generate_android_adaptive_icon "$name"
 }
 
 function precompile_assets() {
@@ -47,55 +65,69 @@ function precompile_assets() {
 }
 
 wget https://raw.githubusercontent.com/Templarian/MaterialDesign/master/svg/cable-data.svg -O assets/logo.svg
-sed -i "s/<path /<path fill=\"$color\" /g" assets/logo.svg
+cp assets/logo.svg assets/logo_inverted.svg
+sed -i "s/<path /<path fill=\"white\" /g" assets/logo.svg
+sed -i "s/<svg /<svg style=\"background-color: $color\" /g" assets/logo.svg
+sed -i "s/<path /<path fill=\"$color\" /g" assets/logo_inverted.svg
 
-wget https://raw.githubusercontent.com/nextcloud/promo/master/nextcloud-logo-inverted.svg -O packages/neon/neon/assets/logo_nextcloud.svg
+wget https://raw.githubusercontent.com/nextcloud/promo/master/nextcloud-logo-inverted.svg -O packages/neon_framework/assets/logo_nextcloud.svg
 
-icons_dir="packages/neon/neon/assets/icons/server/"
+icons_dir="packages/neon_framework/assets/icons/server/"
 rm -rf "$icons_dir"
 mkdir -p "$icons_dir"
 
-shopt -s extglob
-for file in external/nextcloud-server/{core/img/*,apps/*/img}/!(app|app-dark).svg; do
+while IFS= read -r -d '' file
+do
   name="$(basename "$file" | sed "s/.svg$//" | sed "s/-dark$//" | sed "s/-white$//").svg"
-  if ! grep "<image " "$file"; then
-    cp -u "$file" "$icons_dir/$name"
-  fi
-done
+  cp -u "$file" "$icons_dir/$name"
+done < <(find external/nextcloud-server/{core/img,apps/*/img} -name "*.svg" -not -name "app.svg" -not -name "app-dark.svg" -print0)
 
 (
-  cd packages/neon/neon
+  cd packages/neon_framework
   precompile_assets
+
+  fvm dart generate_emojis.dart
+  fvm dart fix --apply lib/src/utils/emojis.dart
 )
 
+copy_app_svg dashboard external/nextcloud-server/apps/dashboard
 copy_app_svg files external/nextcloud-server/apps/files
 copy_app_svg news external/nextcloud-news
 copy_app_svg notes external/nextcloud-notes
 copy_app_svg notifications external/nextcloud-notifications
+copy_app_svg talk external/nextcloud-spreed
 
 (
-  cd packages/app
+  cd packages/neon_framework/example
 
-  cp ../../assets/logo.svg assets/logo.svg
+  cp ../../../assets/logo.svg assets/logo.svg
+  cp ../../../assets/logo_inverted.svg assets/logo_inverted.svg
+
+  # Android icons
+  generate_android_icon assets/logo.svg ic_launcher
+  for path in ../packages/*_app; do
+    icon="$(basename "$path")"
+    generate_android_icon "$path/assets/app.svg" "$icon"
+  done
+
+  # Web icons
+  inkscape assets/logo_inverted.svg -o web/icons/Icon-192.png -w 192 -h 192
+  inkscape assets/logo_inverted.svg -o web/icons/Icon-512.png -w 512 -h 512
+  inkscape assets/logo_inverted.svg -o web/favicon.png        -w 16  -h 16
 
   # Splash screens
-  inkscape assets/logo.svg -o img/splash_icon.png -w 768 -h 768 # 768px at xxxhdpi is 192dp
+  inkscape assets/logo_inverted.svg -o img/splash_icon.png -w 768 -h 768 # 768px at xxxhdpi is 192dp
   convert -size 1152x1152 xc:none img/splash_icon.png -gravity center -composite img/splash_icon_android_12.png # 1152px at xxxhdpi is 288dp
   exiftool -overwrite_original -all= img/splash_icon_android_12.png # To remove timestamps
-
-  # Android launcher icons
-  export_mipmap_icon_all "assets/logo.svg" "ic_launcher" &
-  for path in ../neon/neon_*; do
-    export_mipmap_icon_all "$path/assets/app.svg" "app_$(basename "$path" | sed "s/^neon_//")" &
-  done
-  wait
-
   fvm dart run flutter_native_splash:create
 
   precompile_assets
+  # Restore SVG logo
+  cp ../../../assets/logo.svg assets/logo.svg
+  cp ../../../assets/logo_inverted.svg assets/logo_inverted.svg
 )
 
-for path in packages/neon/neon_*; do
+for path in packages/neon_framework/packages/*_app; do
   (
     cd "$path"
     precompile_assets

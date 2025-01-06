@@ -1,6 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euxo pipefail
 cd "$(dirname "$0")/.."
+source tool/common.sh
+
+function get_mount_paths_dir() {
+  dir="$1"
+  mapfile -t packages < <(melos list --parsable --relative --dir-exists="$dir" | grep "^packages/")
+  echo "${packages[@]/%//$dir}"
+}
+
+function get_mount_paths_file() {
+  file="$1"
+  mapfile -t packages < <(melos list --parsable --relative --file-exists="$file" | grep "^packages/")
+  echo "${packages[@]/%//$file}"
+}
 
 targets=("linux/arm64" "linux/amd64")
 
@@ -12,43 +25,33 @@ if ! [[ ${targets[*]} =~ "$target" ]]; then
   exit 1
 fi
 
-if [ ! -v FLUTTER_VERSION ]; then
-  # shellcheck disable=SC2155
-  export FLUTTER_VERSION="$(jq ".flutterSdkVersion" -r < .fvm/fvm_config.json | cut -d "@" -f 1)"
-fi
-
 if [[ "$target" == "linux/arm64" ]] || [[ "$target" == "linux/amd64" ]]; then
   os="$(echo "$target" | cut -d "/" -f 1)"
   arch="$(echo "$target" | cut -d "/" -f 2)"
 
-  build_args=()
-  if [ -v GITHUB_REPOSITORY ]; then
-    image="ghcr.io/$GITHUB_REPOSITORY/build-$os-$arch"
-    build_args+=(
-      "--push"
-      "--cache-from" "type=registry,ref=$image"
-      "--cache-to" "type=registry,ref=$image,mode=max"
-    )
-    tag="$image:$FLUTTER_VERSION"
-  else
-    tag="nextcloud-neon-build-$os-$arch:$FLUTTER_VERSION"
-  fi
+  tag="$(image_tag "build:$os-$arch")"
 
-  # shellcheck disable=SC2086
+  # shellcheck disable=SC2046
   docker buildx build \
   --platform "$target" \
   --progress plain \
   --tag "$tag"  \
-  --build-arg="FLUTTER_VERSION=$FLUTTER_VERSION" \
-  ${build_args[*]} \
+  --build-arg="FLUTTER_VERSION=$(jq ".flutter" -r < .fvmrc)" \
+  $(cache_build_args "$tag") \
   -f "tool/build/Dockerfile.$os" \
   ./tool/build
 
+  paths=(packages/neon_framework/example/{pubspec.lock,linux,build})
+  mapfile -O "${#paths[@]}" -t paths < <(get_mount_paths_dir "lib")
+  mapfile -O "${#paths[@]}" -t paths < <(get_mount_paths_dir "assets")
+  mapfile -O "${#paths[@]}" -t paths < <(get_mount_paths_file "pubspec.yaml")
+  mapfile -O "${#paths[@]}" -t paths < <(get_mount_paths_file "pubspec_overrides.yaml")
+
   run_args=()
-  for path in packages/{app,dynamite/dynamite_runtime,file_icons,neon_lints,nextcloud,sort_box}/{lib,pubspec.yaml} packages/neon/*/{assets,lib,pubspec.yaml,pubspec_overrides.yaml} packages/file_icons/fonts packages/nextcloud/pubspec_overrides.yaml packages/app/{pubspec_overrides.yaml,assets,build,linux}; do
+  for path in ${paths[*]}; do
     run_args+=(-v "$(pwd)/$path:/src/$path")
   done
-  mkdir -p "packages/app/build"
+  mkdir -p "packages/neon_framework/example/build"
 
   container_id="$(
     # shellcheck disable=SC2086

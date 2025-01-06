@@ -1,0 +1,5 @@
+MKCOL http://localhost/remote\.php/webdav/test/mkcol
+authorization: Bearer mock
+content-type: application/xml
+ocs-apirequest: true
+requesttoken: token

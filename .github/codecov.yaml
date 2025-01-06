@@ -1,0 +1,15 @@
+github_checks:
+  annotations: false
+
+comment:
+  layout: newheader, diff, flags, files
+  require_changes: false
+  require_base: false
+  require_head: true
+  show_carryforward_flags: true
+  show_critical_paths: true
+  hide_comment_details: true
+
+flag_management:
+  default_rules:
+    carryforward: true

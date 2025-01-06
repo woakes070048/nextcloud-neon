@@ -1,24 +1,28 @@
 {
   "version": "0.2",
   "language": "en",
+  "useGitignore": true,
+  "enableGlobDot": false,
   "words": [
     "OpenAPI"
   ],
   "ignorePaths": [
-    "**.iml",
-    "**.log",
     "**.svg",
-    "**/assets/**",
-    "**/build/**",
-    "**/coverage/**",
-    "**/ephemeral/**",
+    "**.mocks.dart",
+    "**/assets",
     "**/l10n/!(en.arb)",
+    "**.openapi.dart",
+    "**.openapi.json",
+    "**/CHANGELOG.md",
     "external",
-    "packages/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java",
-    "packages/app/android/gradlew*",
-    "packages/file_icons/lib/src/data.dart",
+    "packages/dynamite/example/lib",
+    "packages/neon_framework/lib/src/utils/emojis.dart",
+    "packages/neon_framework/example/web/sqflite_sw.js",
+    "packages/neon_framework/example/web/sqlite3.wasm",
     "packages/neon_lints/lib",
-    "packages/nextcloud/test/files"
+    "packages/nextcloud/packages/nextcloud_test_presets/docker/static",
+    "packages/nextcloud/test/files",
+    "packages/nextcloud/test/fixtures"
   ],
   "dictionaries": [
     "bash",

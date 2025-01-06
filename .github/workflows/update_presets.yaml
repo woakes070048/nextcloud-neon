@@ -1,0 +1,37 @@
+name: 'Update test presets'
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 0 * * *'
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+      - name: Install dart
+        uses: dart-lang/setup-dart@e630b99d28a3b71860378cafdc2a067c71107f94 # v1
+        with:
+          sdk: 3.5
+      - name: Setup
+        run: ./tool/setup.sh
+
+      - name: Update presets
+        run: ./tool/generate-nextcloud-test-presets.sh
+      - name: Update support table
+        run: |
+          cd packages/nextcloud
+          fvm dart run generate_support_table.dart
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff1f # v7
+        with:
+          commit-message: "chore(nextcloud_test): Update presets"
+          signoff: true
+          branch: chore/nextcloud_test/update-presets
+          delete-branch: true
+          title: "chore(nextcloud_test): Update presets"
+          body: "`git checkout chore/nextcloud_test/update-presets && git commit --amend -s --no-edit && git push -f` locally to trigger the CI."

@@ -2,12 +2,14 @@
   "dart.lineLength": 120,
   "yaml.format.singleQuote": true,
   "dart.flutterSdkPath": ".fvm/flutter_sdk",
-  // Remove .fvm files from search
+  "dart.testInvocationMode": "line",
+  "files.insertFinalNewline": true,
   "search.exclude": {
-    "**/.fvm": true
+    "**/.fvm": true,
+    "external/": true
   },
-  // Remove from file watching
   "files.watcherExclude": {
-    "**/.fvm": true
+    "**/.fvm": true,
+    "external/": true
   }
 }

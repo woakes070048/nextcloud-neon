@@ -1,0 +1,89 @@
+name: Generate
+on:
+  pull_request:
+
+concurrency:
+  group: generate-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Check changes
+    runs-on: ubuntu-24.04
+    outputs:
+      src: ${{ steps.changes.outputs.src}}
+    steps:
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+        id: changes
+        continue-on-error: true
+        with:
+          filters: |
+            src:
+              - .github/workflows/**
+              - external/**
+              - tool/**
+              - packages/dynamite/**
+              - packages/nextcloud/**
+
+  dart:
+    name: Dart
+    runs-on: ubuntu-24.04
+    needs: changes
+    if: needs.changes.outputs.src != 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+      - name: Submodules
+        run: git submodule update --init --depth 0
+
+      - name: Install dart
+        uses: dart-lang/setup-dart@e630b99d28a3b71860378cafdc2a067c71107f94 # v1
+        with:
+          sdk: 3.5
+      - name: Setup
+        run: ./tool/setup.sh
+
+      - name: Generate dynamite end to end test
+        run: |
+          ./tool/generate-dynamite-e2e-test.sh
+          git --no-pager diff --exit-code
+
+      - name: Generate dynamite petstore example
+        run: |
+          ./tool/generate-dynamite-petstore-example.sh
+          git --no-pager diff --exit-code
+
+      - name: Generate nextcloud
+        run: |
+          ./tool/generate-nextcloud.sh
+          git --no-pager diff --exit-code
+
+  openapi:
+    name: OpenAPI
+    runs-on: ubuntu-24.04
+    needs: changes
+    if: needs.changes.outputs.src != 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+      - name: Submodules
+        run: git submodule update --init --depth 0
+
+      - name: Install php
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2
+        with:
+          php-version: "8.1"
+          tools: composer
+
+      # Use https://github.com/kislyuk/yq
+      - name: Install yq
+        run: pip install yq --break-system-packages
+
+      - name: Generate specs
+        run: |
+          ./tool/generate-specs.sh
+          git --no-pager diff --exit-code

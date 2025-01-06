@@ -1,39 +1,79 @@
 # nextcloud
 
-A Nextcloud client written in Dart.  
+A Nextcloud API client written in Dart.
 
-This client will become the replacement for https://github.com/provokateurin/dart-nextcloud at some point ([See](https://github.com/nextcloud/neon/issues/1)).
+If you want to implement a Flutter app based on Nextcloud, checkout the [Neon project](https://github.com/nextcloud/neon) which provides a framework for this use-case and also develops this package.
 
+## Usage
 
-## Installing
+### Authentication
 
-In the future this code will be available at https://pub.dev/packages/nextcloud, but for now you have to include it via git in your pubspec.yaml:
-```yaml
-dependencies:
-  nextcloud:
-    git:
-      url: https://github.com/nextcloud/neon
-      path: packages/nextcloud
-      ref: $COMMIT
-
-dependency_overrides:
-  dynamite_runtime:
-    git:
-      url: https://github.com/nextcloud/neon
-      path: packages/dynamite/dynamite_runtime
-      ref: $COMMIT
+There are multiple ways to authenticate.  
+First there is HTTP Basic auth which works with the normal user credentials (e-mail and other identifiers also work):
+```dart
+final client = NextcloudClient(
+    Uri.parse('http://localhost'),
+    loginName: 'admin',
+    password: 'admin',
+);
 ```
-You can either remove the `ref` or use a commit hash. It's not recommended to remove it, because then the version will be updated very often.
 
-## Development
+Secondly there is Http Bearer auth which works with app passwords:
+```dart
+final client = NextcloudClient(
+    Uri.parse('http://localhost'),
+    loginName: 'admin',
+    appPassword: 'xxxxx-xxxxx-xxxxx-xxxx-xxxxx',
+);
+```
 
-Except for WebDAV all client code is generated using OpenAPI specs which can be found in the `../../specs/` folder.  
-Templates for these OpenAPI specs are generated from the Nextcloud codebase to make development easier.  
+Not all endpoints work with just HTTP Basic auth, so it is advised to use app passwords obtained either directly in the Web UI by the user or using the [login flow](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/LoginFlow/index.html#login-flow-v2).  
+Some endpoints do not need any authentication at all or provide extended information when the request is optionally authenticated.
 
-To generate such a template take a look at `../../tool/generate-nextcloud.sh`.  
-After you have generated a template, you need to fill it out. Some endpoints can or have to be discarded.  
+**Note**
+Flutter applications may require [additional configuration](https://docs.flutter.dev/data-and-backend/networking#platform-notes) to make HTTP requests.
 
-Then you start writing tests for the endpoints you added.  
-To easily inspect the responses for an endpoint, just set the `type` to `string` inside the `schema` blocks of the spec and let the output be printed in the tests.
 
-Sometimes you will have to look at the source code of Nextcloud, because the API is not always intuitive. Make sure to check if there is any API documentation that can help you.
+### Endpoints
+
+It is not guaranteed that an API request will work unless the app is installed and enabled on the server (and has a supported version).  
+
+To get an easier overview of the available endpoints you can browse the [server OpenAPI documentation](https://docs.nextcloud.com/server/latest/developer_manual/_static/openapi.html), but be aware that the package might not be in sync with it.  
+Alternatively you can also go to https://pub.dev/documentation/nextcloud/latest.
+
+The endpoints are grouped by app and most apps also group their endpoints again.
+They can be accessed using getters on the `NextcloudClient`.
+
+For an example checkout the [example](https://github.com/nextcloud/neon/blob/main/packages/nextcloud/example/example.dart).  
+
+## Compatibility/Support policy
+
+[Do not edit manually below]: #
+
+| Component                                                                          | Supported versions (1) |
+|------------------------------------------------------------------------------------|------------------------|
+| [Server](https://github.com/nextcloud/server) (2)                                  | 28 - 30                |
+| [Cookbook app](https://github.com/nextcloud/cookbook)                              | 0.11                   |
+| [User account deletion app](https://framagit.org/framasoft/nextcloud/drop_account) | 2.4 - 2.6              |
+| [News app](https://github.com/nextcloud/news)                                      | 25 - 25.2              |
+| [Notes app](https://github.com/nextcloud/notes)                                    | 4.8 - 4.11             |
+| [Notifications app](https://github.com/nextcloud/notifications)                    | 28 - 30                |
+| [Talk app](https://github.com/nextcloud/spreed)                                    | 18 - 20.1              |
+| [Tables app](https://github.com/nextcloud/tables)                                  | 0.6 - 0.8              |
+| [NextPush app](https://codeberg.org/NextPush/uppush)                               | 1.4 - 2.1              |
+
+[Do not edit manually above]: #
+
+1: Other versions might be supported too or at least mostly working, but we do not test against those.  
+2: Server includes the following apps: comments, core, dashboard, dav, files, files_external, files_reminders, files_sharing, files_trashbin, files_versions, provisioning_api, settings, sharebymail, systemtags, theming, updatenotification, user_ldap, user_status, weather_status, webhook_listeners and WebDAV.  
+
+We aim to support all currently maintained server versions and all app versions that support those server versions.
+The currently maintained server versions can be found here: https://github.com/nextcloud/server/wiki/Maintenance-and-Release-Schedule.
+Older versions might still be supported and tested, but we do not guarantee anything beyond the EOL date of these versions.
+
+To ensure this package is compatible with the supported server versions we run API unit tests.
+Since we do not cover all endpoints we can not claim compatibility for endpoints we do not test against.
+Even if there are unit tests for an endpoint we can not guarantee that it will work fine in every scenario.
+
+Please report any compatibility problems (if you are using a compatible server version) and feel free to add unit tests for endpoints you depend on.
+This will increase our test coverage and enables everyone to work more confidently with the endpoints.

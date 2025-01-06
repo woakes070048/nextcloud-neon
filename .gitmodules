@@ -1,21 +1,33 @@
 [submodule "external/nextcloud-server"]
 	path = external/nextcloud-server
 	url = https://github.com/nextcloud/server.git
-[submodule "external/nextcloud-news"]
-	path = external/nextcloud-news
-	url = https://github.com/nextcloud/news.git
-[submodule "external/seti-ui"]
-	path = external/seti-ui
-	url = https://github.com/jesseweed/seti-ui.git
-[submodule "external/nextcloud-notes"]
-	path = external/nextcloud-notes
-	url = https://github.com/nextcloud/notes.git
 [submodule "external/nextcloud-notifications"]
 	path = external/nextcloud-notifications
 	url = https://github.com/nextcloud/notifications.git
-[submodule "external/nextcloud-uppush"]
-	path = external/nextcloud-uppush
-	url = https://github.com/UP-NextPush/server-app.git
-[submodule "external/flathub-shared-modules"]
-	path = external/flathub-shared-modules
-	url = https://github.com/flathub/shared-modules.git
+[submodule "external/nextcloud-spreed"]
+	path = external/nextcloud-spreed
+	url = https://github.com/nextcloud/spreed
+[submodule "external/nextcloud-news"]
+	path = external/nextcloud-news
+	url = https://github.com/nextcloud/news
+[submodule "external/nextcloud-notes"]
+	path = external/nextcloud-notes
+	url = https://github.com/nextcloud/notes
+[submodule "external/openapi-specification"]
+	path = external/openapi-specification
+	url = https://github.com/OAI/OpenAPI-Specification.git
+[submodule "external/nextcloud-openapi-extractor"]
+	path = external/nextcloud-openapi-extractor
+	url = https://github.com/nextcloud/openapi-extractor.git
+[submodule "external/nextcloud-drop_account"]
+	path = external/nextcloud-drop_account
+	url = https://framagit.org/framasoft/nextcloud/drop_account.git
+[submodule "external/nextcloud-cookbook"]
+	path = external/nextcloud-cookbook
+	url = https://github.com/nextcloud/cookbook.git
+[submodule "external/nextcloud-tables"]
+	path = external/nextcloud-tables
+	url = https://github.com/nextcloud/tables
+[submodule "external/emoji-metadata"]
+	path = external/emoji-metadata
+	url = https://github.com/googlefonts/emoji-metadata
